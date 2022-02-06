@@ -1,60 +1,34 @@
-import React, { useCallback, useReducer } from 'react';
+import React from 'react';
 
 import Input from '../../common/components/FormElements/Input';
 import { VALIDATOR_MINLENGTH, VALIDATOR_REQUIRE } from '../../common/Utility/validators';
 import Button from '../../common/components/FormElements/Button';
-import './NewEvent.css';
-
-const formReducer = (state, action) => {
-  switch (action.type) {
-    case 'INPUT_CHANGE':
-      let formIsValid = true;
-      for (const inputId in state.inputs) {
-        if (inputId === action.inputId) {
-          formIsValid = formIsValid && action.isValid;
-        } else {
-          formIsValid = formIsValid && state.inputs[inputId].isValid;
-        }
-      }
-      return {
-        ...state,
-        inputs: {
-          ...state.inputs,
-          [action.inputId]: { value: action.value, isValid: action.isValid }
-        },
-        isValid: formIsValid
-      };
-    default:
-      return state;
-  }
-};
+import { useForm } from '../../common/hooks/form-hook';
+import './EventForm.css';
 
 const NewEvent = () => {
-  const [formState, dispatch] = useReducer(formReducer, {
-    inputs: {
-      title: {
-        value: '',
-        isValid: false
-      },
-      description: {
-        value: '',
-        isValid: false
-      }
+  const [formState, inputHandler] = useForm({
+    title: {
+      value: '',
+      isValid: false
     },
-    isValid: false
-  });
+    description: {
+      value: '',
+      isValid: false
+    },
+    address: {
+      value: '',
+      isValid: false
+    }
+  }, false);
 
-  const inputHandler = useCallback((id, value, isValid) => {
-    dispatch({
-      type: 'INPUT_CHANGE',
-      value: value,
-      isValid: isValid,
-      inputId: id
-    });
-  }, []);
+  const eventSubmitHandler = e => {
+    e.preventDefault();
+    console.log(formState.inputs); // send this to the backend!
+  };
 
   return (
-    <form className="event-form">
+    <form className="event-form" onSubmit={eventSubmitHandler}>
       <Input
         id="title"
         element="input"
@@ -70,6 +44,14 @@ const NewEvent = () => {
         label="Description"
         validators={[VALIDATOR_MINLENGTH(5)]}
         errorText="Please enter a description at least 5 characters."
+        onInput={inputHandler}
+      />
+      <Input
+        id="address"
+        element="input"
+        label="Address"
+        validators={[VALIDATOR_REQUIRE]}
+        errorText="Please enter a valid address."
         onInput={inputHandler}
       />
       <Button type="submit" disabled={!formState.isValid}>

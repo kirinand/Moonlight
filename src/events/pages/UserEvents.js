@@ -1,6 +1,9 @@
 import React from "react";
-import EventList from "../components/EventList";
 import { useParams } from "react-router";
+
+import EventList from "../components/EventList";
+import Button from "../../common/components/FormElements/Button";
+
 
 const DUMMY_DATA = [
   {
@@ -17,7 +20,7 @@ const DUMMY_DATA = [
   },
   {
     id: 'e2',
-    title: 'Ourdoor Movie Night',
+    title: 'Campus Movie Night',
     description: 'Two films and dinner time in between, bring your friends!',
     imageUrl: 'https://dummyimage.com/600x400/000/fff',
     address: '3700 Willingdon Ave, Burnaby, BC V5G 3H2',

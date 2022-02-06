@@ -1,4 +1,5 @@
 import React from "react";
+import Button from "../../common/components/FormElements/Button";
 
 import Card from "../../common/components/UIElements/Card";
 import EventItem from "./EventItem";
@@ -10,7 +11,7 @@ const EventList = (props) => {
       <div className="event-list center">
         <Card>
           <h2>No event found.</h2>
-          <button>Post Events</button>
+          <Button to="/events/new">POST EVENTS</Button>
         </Card>
       </div>
     );

@@ -8,10 +8,18 @@ import "./EventItem.css";
 
 const EventItem = (props) => {
   const [showMap, setShowMap] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   const openMapHandler = () => setShowMap(true);
 
   const closeMapHandler = () => setShowMap(false);
+
+  const showDeleteHandler = () => setShowDelete(true);
+  const cancelDeleteHandler = () => setShowDelete(false);
+  const deleteHandler = () => {
+    setShowDelete(false);
+    console.log('DELETING...');
+  };
 
   return (
     <Fragment>
@@ -27,6 +35,20 @@ const EventItem = (props) => {
           <h2>MAP</h2>
         </div>
       </Modal>
+      <Modal
+        show={showDelete}
+        onCancel={cancelDeleteHandler}
+        header="Are you sure?"
+        footerClass="event-item__modal-actions"
+        footer={
+          <Fragment>
+            <Button inverse onClick={cancelDeleteHandler}>CANCEL</Button>
+            <Button danger onClick={deleteHandler}>DELETE</Button>
+          </Fragment>
+        }
+      >
+        <p>Delete this event?</p>
+      </Modal>
       <li className="event-item">
         <Card className="event-item__content">
           <div className="event-item__image">
@@ -38,9 +60,11 @@ const EventItem = (props) => {
             <p>{props.description}</p>
           </div>
           <div className="event-item__actions">
-            <Button inverse onClick={openMapHandler}>VIEW ON MAP</Button>
+            <Button inverse onClick={openMapHandler}>
+              VIEW ON MAP
+            </Button>
             <Button to={`/events/${props.id}`}>EDIT</Button>
-            <Button danger>DELETE</Button>
+            <Button danger onClick={showDeleteHandler}>DELETE</Button>
           </div>
         </Card>
       </li>

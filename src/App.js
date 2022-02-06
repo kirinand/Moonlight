@@ -6,6 +6,7 @@ import Users from './user/pages/Users';
 import NewEvent from './events/pages/NewEvent';
 import MainNavigation from './common/components/Navigation/MainNavigation';
 import UserEvents from './events/pages/UserEvents';
+import UpdateEvent from './events/pages/UpdateEvent';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/" element={<Users />} />
           <Route path="/:uid/events" element={ <UserEvents /> } />
           <Route path="/events/new" element={ <NewEvent /> } />
+          <Route path="/events/:eventId" element={ <UpdateEvent /> } />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
