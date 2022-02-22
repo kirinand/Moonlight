@@ -1,35 +1,37 @@
 // const { v4: uuidv4 } = require('uuid');
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 
 const HttpError = require('../models/http-error');
 const Event = require('../models/event');
+const User = require('../models/user');
 
-let DUMMY_DATA = [
-  {
-    id: 'e1',
-    title: 'Ourdoor Movie Night',
-    description: 'Two films and dinner time in between, bring your friends!',
-    imageUrl: 'https://dummyimage.com/600x400/000/fff',
-    address: '3700 Willingdon Ave, Burnaby, BC V5G 3H2',
-    location: {
-      lat: 0,
-      lng: 0
-    },
-    creator: 'u1'
-  },
-  {
-    id: 'e2',
-    title: 'Campus Movie Night',
-    description: 'Two films and dinner time in between, bring your friends!',
-    imageUrl: 'https://dummyimage.com/600x400/000/fff',
-    address: '3700 Willingdon Ave, Burnaby, BC V5G 3H2',
-    location: {
-      lat: 0,
-      lng: 0
-    },
-    creator: 'u1'
-  }
-];
+// let DUMMY_DATA = [
+//   {
+//     id: 'e1',
+//     title: 'Ourdoor Movie Night',
+//     description: 'Two films and dinner time in between, bring your friends!',
+//     imageUrl: 'https://dummyimage.com/600x400/000/fff',
+//     address: '3700 Willingdon Ave, Burnaby, BC V5G 3H2',
+//     location: {
+//       lat: 0,
+//       lng: 0
+//     },
+//     creator: 'u1'
+//   },
+//   {
+//     id: 'e2',
+//     title: 'Campus Movie Night',
+//     description: 'Two films and dinner time in between, bring your friends!',
+//     imageUrl: 'https://dummyimage.com/600x400/000/fff',
+//     address: '3700 Willingdon Ave, Burnaby, BC V5G 3H2',
+//     location: {
+//       lat: 0,
+//       lng: 0
+//     },
+//     creator: 'u1'
+//   }
+// ];
 
 const getEventById = async (req, res, next) => {
   const eventId = req.params.eid;
@@ -47,7 +49,7 @@ const getEventById = async (req, res, next) => {
   // });
 
   if (!event) {
-    const error = new HttpError('Could not find a place for the provided id.', 404);
+    const error = new HttpError('Could not find a event for the provided id.', 404);
     return next(error);  // throw error; can be used if synchronous
   }
 
@@ -56,9 +58,9 @@ const getEventById = async (req, res, next) => {
 
 const getEventsByUser = async (req, res, next) => {
   const userId = req.params.uid;
-  let events;
+  let user;
   try {
-    events = await Event.find({ creator: userId }); // return an array in mongoose (a cursor in vanilla mongoDB)
+    user = await User.findById(userId).populate('events');
   } catch {
     const error = new HttpError('Something went wrong, could not fetch any event.', 500);
     return next(error);
@@ -67,12 +69,12 @@ const getEventsByUser = async (req, res, next) => {
   //   return evt.creator === userId;
   // });
 
-  if (!events || events.length === 0) {
-    const error = new HttpError('Could not find places for the provided user id.', 404);
+  if (!user || user.events.length === 0) {
+    const error = new HttpError('Could not find events for the provided user id.', 404);
     return next(error);  // throw error; can be used if functions were synchronous
   }
 
-  res.json({ events: events.map(
+  res.json({ events: user.events.map(
     event => event.toObject({ getters: true })) 
   });
 };
@@ -81,7 +83,7 @@ const createEvent = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log(errors);
-    throw new HttpError('Invalid inputs passed, please check your data.', 422);
+    throw new HttpError('Invalid inputs passed, please check.', 422);
   }
 
   const { title, description, address, creator } = req.body; // const title = req.body.title .....
@@ -96,20 +98,38 @@ const createEvent = async (req, res, next) => {
     image: 'https://dummyimage.com/600x400/000/fff',
     creator
   });
+
+  let user;
+  try {
+    user = await User.findById(creator);
+  } catch (err) {
+    return next(
+      new HttpError('Creating event failed, please try again.', 500)
+    );
+  }
+
+  if (!user) {
+    return next(
+      new HttpError('Could not find user.', 404)
+    );
+  }
+
+  console.log(user);
+
   // {
   //   id: uuidv4(),
-  //   title,  // title: title
-  //   description,
-  //   location: coordinates, 
-  //   address, 
-  //   creator
   // };
 
   try {
-    await createdEvent.save();
+    const session = await mongoose.startSession(); 
+    session.startTransaction();
+    await createdEvent.save({ session: session });
+    user.events.push(createdEvent);
+    await user.save({ session: session });
+    await session.commitTransaction();
   } catch {
-    const errot = new HttpError('Creating event failed, please try again.', 500);
-    return next(errot);
+    const error = new HttpError('Creating event failed, please try again.', 500);
+    return next(error);
   }
   
   // DUMMY_DATA.push(createEvent); // or unshift(createEvent);
@@ -121,7 +141,8 @@ const updateEvent = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log(errors);
-    throw new HttpError('Invalid inputs passed, please check your data.', 422);
+    const error = new HttpError('Invalid inputs passed, please check your data.', 422);
+    return next(error);
   }
 
   const { title, description, address } = req.body;
@@ -158,14 +179,24 @@ const deleteEvent = async (req, res, next) => {
 
   let event;
   try {
-    event = await Event.findById(eventId);
+    event = await Event.findById(eventId).populate('creator');  // populate() needs mutual reference
   } catch {
     const error = new HttpError("Something went wrong, could not delete event.", 500);
     return next(error);
   }
 
+  if (!event) {
+    const error = new HttpError('Could not find event.', 404);
+    return next(error);
+  }
+
   try {
-    await event.remove();
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    await event.remove({ session: session });
+    event.creator.events.pull(event);
+    await event.creator.save({ session: session });
+    await session.commitTransaction();
   } catch {
     const error = new HttpError("Something went wrong, could not delete event.", 500);
     return next(error);
